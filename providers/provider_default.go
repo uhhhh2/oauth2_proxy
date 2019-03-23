@@ -12,6 +12,12 @@ import (
 	"github.com/pusher/oauth2_proxy/cookie"
 )
 
+// Only override if the rest of the Provider methods that need tokens
+// can work with BOTH PersonalAccessToken AND AccessToken
+func (p *ProviderData) SupportsPersonalAccessTokens() bool {
+	return false
+}
+
 // Redeem provides a default implementation of the OAuth2 token redemption process
 func (p *ProviderData) Redeem(redirectURL, code string) (s *SessionState, err error) {
 	if code == "" {

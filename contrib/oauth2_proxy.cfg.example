@@ -50,6 +50,19 @@
 ## enabling exposes a username/login signin form
 # htpasswd_file = ""
 
+## Basic Auth with Personal Access Token
+## Additionally allow HTTP Basic Authentication with a username/email
+## and a user's personal access token instead of a password.
+## A "personal access token" is an access token that the user creates before contacting this proxy,
+## as opposed to a normal access token that is requested by this proxy during the OAuth2 web flow.
+## For example, if users enable multifactor authentication on their accounts with the provider,
+## but these users need to run CLI clients to connect to the proxied services,
+## and the CLI clients cannot otherwise connect to the proxied services,
+## these users might create personal access tokens for use with the CLI clients.
+## Only enable this if your provider implementation supports personal access tokens.
+## Currently only the GitHub and GitLab provider implementations support personal access tokens.
+# personal_access_token_basic_auth = false
+
 ## Templates
 ## optional directory with custom sign_in.html and error.html
 # custom_templates_dir = ""

@@ -126,6 +126,16 @@ func (p *GitHubProvider) hasOrg(accessToken string) (bool, error) {
 	return false, nil
 }
 
+func (p *GitHubProvider) ValidateSessionState(s *SessionState) bool {
+	if s.AccessToken != "" {
+		return validateToken(p, s.AccessToken, nil)
+	} else if s.PersonalAccessToken != "" {
+		return validateToken(p, s.PersonalAccessToken, nil)
+	} else {
+		return false
+	}
+}
+
 func (p *GitHubProvider) hasOrgAndTeam(accessToken string) (bool, error) {
 	// https://developer.github.com/v3/orgs/teams/#list-user-teams
 
@@ -206,14 +216,19 @@ func (p *GitHubProvider) GetEmailAddress(s *SessionState) (string, error) {
 		Primary bool   `json:"primary"`
 	}
 
+	accessTokenValue, err := p.getAccessTokenValue(s)
+	if err != nil {
+		return "", err
+	}
+
 	// if we require an Org or Team, check that first
 	if p.Org != "" {
 		if p.Team != "" {
-			if ok, err := p.hasOrgAndTeam(s.AccessToken); err != nil || !ok {
+			if ok, err := p.hasOrgAndTeam(accessTokenValue); err != nil || !ok {
 				return "", err
 			}
 		} else {
-			if ok, err := p.hasOrg(s.AccessToken); err != nil || !ok {
+			if ok, err := p.hasOrg(accessTokenValue); err != nil || !ok {
 				return "", err
 			}
 		}
@@ -225,7 +240,7 @@ func (p *GitHubProvider) GetEmailAddress(s *SessionState) (string, error) {
 		Path:   path.Join(p.ValidateURL.Path, "/user/emails"),
 	}
 	req, _ := http.NewRequest("GET", endpoint.String(), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("token %s", s.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("token %s", accessTokenValue))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
@@ -256,6 +271,24 @@ func (p *GitHubProvider) GetEmailAddress(s *SessionState) (string, error) {
 	return "", nil
 }
 
+func (p *GitHubProvider) SupportsPersonalAccessTokens() bool {
+	return true
+}
+
+// getAccessTokenValue returns the value of the current access token.
+// In GitHub, a PersonalAccessToken (an access token the user makes before contacting this proxy)
+// and an AcessToken (access token that is obtained by this proxy during the OAuth2 web flow)
+// are indistinguishable.
+func (p *GitHubProvider) getAccessTokenValue(s *SessionState) (string, error) {
+	if s.AccessToken != "" {
+		return s.AccessToken, nil
+	} else if s.PersonalAccessToken != "" {
+		return s.PersonalAccessToken, nil
+	} else {
+		return "", fmt.Errorf("no token")
+	}
+}
+
 // GetUserName returns the Account user name
 func (p *GitHubProvider) GetUserName(s *SessionState) (string, error) {
 	var user struct {
@@ -269,12 +302,17 @@ func (p *GitHubProvider) GetUserName(s *SessionState) (string, error) {
 		Path:   path.Join(p.ValidateURL.Path, "/user"),
 	}
 
+	accessTokenValue, err := p.getAccessTokenValue(s)
+	if err != nil {
+		return "", err
+	}
+
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
 	if err != nil {
 		return "", fmt.Errorf("could not create new GET request: %v", err)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("token %s", s.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("token %s", accessTokenValue))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err

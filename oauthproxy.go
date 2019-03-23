@@ -62,36 +62,37 @@ type OAuthProxy struct {
 	CookieRefresh  time.Duration
 	Validator      func(string) bool
 
-	RobotsPath        string
-	PingPath          string
-	SignInPath        string
-	SignOutPath       string
-	OAuthStartPath    string
-	OAuthCallbackPath string
-	AuthOnlyPath      string
+	RobotsPath          string
+	PingPath            string
+	SignInPath          string
+	SignOutPath         string
+	OAuthStartPath      string
+	OAuthCallbackPath   string
+	AuthOnlyPath        string
 
-	redirectURL         *url.URL // the url to receive requests at
-	whitelistDomains    []string
-	provider            providers.Provider
-	ProxyPrefix         string
-	SignInMessage       string
-	HtpasswdFile        *HtpasswdFile
-	DisplayHtpasswdForm bool
-	serveMux            http.Handler
-	SetXAuthRequest     bool
-	PassBasicAuth       bool
-	SkipProviderButton  bool
-	PassUserHeaders     bool
-	BasicAuthPassword   string
-	PassAccessToken     bool
-	SetAuthorization    bool
-	PassAuthorization   bool
-	CookieCipher        *cookie.Cipher
-	skipAuthRegex       []string
-	skipAuthPreflight   bool
-	compiledRegex       []*regexp.Regexp
-	templates           *template.Template
-	Footer              string
+	redirectURL                  *url.URL // the url to receive requests at
+	whitelistDomains             []string
+	provider                     providers.Provider
+	ProxyPrefix                  string
+	SignInMessage                string
+	HtpasswdFile                 *HtpasswdFile
+	DisplayHtpasswdForm          bool
+	PersonalAccessTokenBasicAuth bool
+	serveMux                     http.Handler
+	SetXAuthRequest              bool
+	PassBasicAuth                bool
+	SkipProviderButton           bool
+	PassUserHeaders              bool
+	BasicAuthPassword            string
+	PassAccessToken              bool
+	SetAuthorization             bool
+	PassAuthorization            bool
+	CookieCipher                 *cookie.Cipher
+	skipAuthRegex                []string
+	skipAuthPreflight            bool
+	compiledRegex                []*regexp.Regexp
+	templates                    *template.Template
+	Footer                       string
 }
 
 // UpstreamProxy represents an upstream server to proxy to
@@ -225,6 +226,10 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 		}
 	}
 
+	if opts.PersonalAccessTokenBasicAuth && !opts.provider.SupportsPersonalAccessTokens() {
+		log.Fatal("provider doesn't support personal access tokens but PersonalAccessTokenBasicAuth is enabled.")
+	}
+
 	return &OAuthProxy{
 		CookieName:     opts.CookieName,
 		CSRFCookieName: fmt.Sprintf("%v_%v", opts.CookieName, "csrf"),
@@ -244,25 +249,26 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 		OAuthCallbackPath: fmt.Sprintf("%s/callback", opts.ProxyPrefix),
 		AuthOnlyPath:      fmt.Sprintf("%s/auth", opts.ProxyPrefix),
 
-		ProxyPrefix:        opts.ProxyPrefix,
-		provider:           opts.provider,
-		serveMux:           serveMux,
-		redirectURL:        redirectURL,
-		whitelistDomains:   opts.WhitelistDomains,
-		skipAuthRegex:      opts.SkipAuthRegex,
-		skipAuthPreflight:  opts.SkipAuthPreflight,
-		compiledRegex:      opts.CompiledRegex,
-		SetXAuthRequest:    opts.SetXAuthRequest,
-		PassBasicAuth:      opts.PassBasicAuth,
-		PassUserHeaders:    opts.PassUserHeaders,
-		BasicAuthPassword:  opts.BasicAuthPassword,
-		PassAccessToken:    opts.PassAccessToken,
-		SetAuthorization:   opts.SetAuthorization,
-		PassAuthorization:  opts.PassAuthorization,
-		SkipProviderButton: opts.SkipProviderButton,
-		CookieCipher:       cipher,
-		templates:          loadTemplates(opts.CustomTemplatesDir),
-		Footer:             opts.Footer,
+		ProxyPrefix:                  opts.ProxyPrefix,
+		provider:                     opts.provider,
+		serveMux:                     serveMux,
+		redirectURL:                  redirectURL,
+		whitelistDomains:             opts.WhitelistDomains,
+		skipAuthRegex:                opts.SkipAuthRegex,
+		skipAuthPreflight:            opts.SkipAuthPreflight,
+		compiledRegex:                opts.CompiledRegex,
+		SetXAuthRequest:              opts.SetXAuthRequest,
+		PassBasicAuth:                opts.PassBasicAuth,
+		PassUserHeaders:              opts.PassUserHeaders,
+		BasicAuthPassword:            opts.BasicAuthPassword,
+		PersonalAccessTokenBasicAuth: opts.PersonalAccessTokenBasicAuth,
+		PassAccessToken:              opts.PassAccessToken,
+		SetAuthorization:             opts.SetAuthorization,
+		PassAuthorization:            opts.PassAuthorization,
+		SkipProviderButton:           opts.SkipProviderButton,
+		CookieCipher:                 cipher,
+		templates:                    loadTemplates(opts.CustomTemplatesDir),
+		Footer:                       opts.Footer,
 	}
 }
 
@@ -309,6 +315,24 @@ func (p *OAuthProxy) redeemCode(host, code string) (s *providers.SessionState, e
 		if err != nil && err.Error() == "not implemented" {
 			err = nil
 		}
+	}
+	return
+}
+
+// redeemPersonalAccessToken attempts to populate the user's username and email
+// via a Personal access token.
+func (p *OAuthProxy) redeemPersonalAccessToken(token string) (s *providers.SessionState, err error) {
+	if token == "" {
+		return nil, errors.New("missing token")
+	}
+	s = &providers.SessionState{PersonalAccessToken: token}
+	s.Email, err = p.provider.GetEmailAddress(s)
+	if err != nil {
+		return nil, err
+	}
+	s.User, err = p.provider.GetUserName(s)
+	if err != nil && err.Error() == "not implemented" {
+		err = nil
 	}
 	return
 }
@@ -885,6 +909,13 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 	}
 
 	if session == nil {
+		session, err = p.CheckPersonalAccessTokenBasicAuth(req)
+		if err != nil {
+			log.Printf("%s %s", remoteAddr, err)
+		}
+	}
+
+	if session == nil {
 		// Check if is an ajax request and return unauthorized to avoid a redirect
 		// to the login page
 		if p.isAjax(req) {
@@ -960,6 +991,52 @@ func (p *OAuthProxy) CheckBasicAuth(req *http.Request) (*providers.SessionState,
 		return &providers.SessionState{User: pair[0]}, nil
 	}
 	return nil, fmt.Errorf("%s not in HtpasswdFile", pair[0])
+}
+
+// CheckPersonalAccessTokenBasicAuth checks the requests Authorization header for basic auth
+// credentials such that the username is a username/email
+// and the password is an OAuth personal access token that the user created previously.
+func (p *OAuthProxy) CheckPersonalAccessTokenBasicAuth(req *http.Request) (*providers.SessionState, error) {
+	if !p.PersonalAccessTokenBasicAuth {
+		return nil, nil
+	}
+	if !p.provider.SupportsPersonalAccessTokens() {
+		return nil, nil
+	}
+	remoteAddr := getRemoteAddr(req)
+	auth := req.Header.Get("Authorization")
+	if auth == "" {
+		return nil, nil
+	}
+	s := strings.SplitN(auth, " ", 2)
+	if len(s) != 2 || s[0] != "Basic" {
+		return nil, fmt.Errorf("invalid Authorization header %s", req.Header.Get("Authorization"))
+	}
+	b, err := b64.StdEncoding.DecodeString(s[1])
+	if err != nil {
+		return nil, err
+	}
+	pair := strings.SplitN(string(b), ":", 2)
+	if len(pair) != 2 {
+		return nil, fmt.Errorf("invalid format %s", b)
+	}
+	user := pair[0]
+	accessToken := pair[1]
+	session, err := p.redeemPersonalAccessToken(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	if user != session.User && user != session.Email {
+		return nil, fmt.Errorf("user %q is not user %q or email %q", remoteAddr, user, session.User, session.Email)
+	}
+	if !p.Validator(session.Email) || !p.provider.ValidateGroup(session.Email) {
+		return nil, fmt.Errorf("user %q email %q from access token not validated", session.User, session.Email)
+	}
+	if !p.provider.ValidateSessionState(session) {
+		return nil, fmt.Errorf("user %q email %q from access token state not validated", session.User, session.Email)
+	}
+	return session, nil
 }
 
 // isAjax checks if a request is an ajax request

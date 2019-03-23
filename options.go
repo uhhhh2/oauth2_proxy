@@ -38,13 +38,14 @@ type Options struct {
 	WhitelistDomains         []string `flag:"whitelist-domain" cfg:"whitelist_domains" env:"OAUTH2_PROXY_WHITELIST_DOMAINS"`
 	GitHubOrg                string   `flag:"github-org" cfg:"github_org" env:"OAUTH2_PROXY_GITHUB_ORG"`
 	GitHubTeam               string   `flag:"github-team" cfg:"github_team" env:"OAUTH2_PROXY_GITHUB_TEAM"`
-	GoogleGroups             []string `flag:"google-group" cfg:"google_group" env:"OAUTH2_PROXY_GOOGLE_GROUPS"`
-	GoogleAdminEmail         string   `flag:"google-admin-email" cfg:"google_admin_email" env:"OAUTH2_PROXY_GOOGLE_ADMIN_EMAIL"`
-	GoogleServiceAccountJSON string   `flag:"google-service-account-json" cfg:"google_service_account_json" env:"OAUTH2_PROXY_GOOGLE_SERVICE_ACCOUNT_JSON"`
-	HtpasswdFile             string   `flag:"htpasswd-file" cfg:"htpasswd_file" env:"OAUTH2_PROXY_HTPASSWD_FILE"`
-	DisplayHtpasswdForm      bool     `flag:"display-htpasswd-form" cfg:"display_htpasswd_form" env:"OAUTH2_PROXY_DISPLAY_HTPASSWD_FORM"`
-	CustomTemplatesDir       string   `flag:"custom-templates-dir" cfg:"custom_templates_dir" env:"OAUTH2_PROXY_CUSTOM_TEMPLATES_DIR"`
-	Footer                   string   `flag:"footer" cfg:"footer" env:"OAUTH2_PROXY_FOOTER"`
+	GoogleGroups                 []string `flag:"google-group" cfg:"google_group" env:"OAUTH2_PROXY_GOOGLE_GROUPS"`
+	GoogleAdminEmail             string   `flag:"google-admin-email" cfg:"google_admin_email" env:"OAUTH2_PROXY_GOOGLE_ADMIN_EMAIL"`
+	GoogleServiceAccountJSON     string   `flag:"google-service-account-json" cfg:"google_service_account_json" env:"OAUTH2_PROXY_GOOGLE_SERVICE_ACCOUNT_JSON"`
+	HtpasswdFile                 string   `flag:"htpasswd-file" cfg:"htpasswd_file" env:"OAUTH2_PROXY_HTPASSWD_FILE"`
+	PersonalAccessTokenBasicAuth bool     `flag:"personal-access-token-basic-auth" cfg:"personal_access_token_basic_auth" env:"OAUTH2_PROXY_PERSONAL_ACCESS_TOKEN_BASIC_AUTH"`
+	DisplayHtpasswdForm          bool     `flag:"display-htpasswd-form" cfg:"display_htpasswd_form" env:"OAUTH2_PROXY_DISPLAY_HTPASSWD_FORM"`
+	CustomTemplatesDir           string   `flag:"custom-templates-dir" cfg:"custom_templates_dir" env:"OAUTH2_PROXY_CUSTOM_TEMPLATES_DIR"`
+	Footer                       string   `flag:"footer" cfg:"footer" env:"OAUTH2_PROXY_FOOTER"`
 
 	CookieName     string        `flag:"cookie-name" cfg:"cookie_name" env:"OAUTH2_PROXY_COOKIE_NAME"`
 	CookieSecret   string        `flag:"cookie-secret" cfg:"cookie_secret" env:"OAUTH2_PROXY_COOKIE_SECRET"`
@@ -109,28 +110,29 @@ type SignatureData struct {
 // NewOptions constructs a new Options with defaulted values
 func NewOptions() *Options {
 	return &Options{
-		ProxyPrefix:          "/oauth2",
-		ProxyWebSockets:      true,
-		HTTPAddress:          "127.0.0.1:4180",
-		HTTPSAddress:         ":443",
-		DisplayHtpasswdForm:  true,
-		CookieName:           "_oauth2_proxy",
-		CookieSecure:         true,
-		CookieHTTPOnly:       true,
-		CookieExpire:         time.Duration(168) * time.Hour,
-		CookieRefresh:        time.Duration(0),
-		SetXAuthRequest:      false,
-		SkipAuthPreflight:    false,
-		PassBasicAuth:        true,
-		PassUserHeaders:      true,
-		PassAccessToken:      false,
-		PassHostHeader:       true,
-		SetAuthorization:     false,
-		PassAuthorization:    false,
-		ApprovalPrompt:       "force",
-		RequestLogging:       true,
-		SkipOIDCDiscovery:    false,
-		RequestLoggingFormat: defaultRequestLoggingFormat,
+		ProxyPrefix:                  "/oauth2",
+		ProxyWebSockets:              true,
+		HTTPAddress:                  "127.0.0.1:4180",
+		HTTPSAddress:                 ":443",
+		DisplayHtpasswdForm:          true,
+		CookieName:                   "_oauth2_proxy",
+		CookieSecure:                 true,
+		CookieHTTPOnly:               true,
+		CookieExpire:                 time.Duration(168) * time.Hour,
+		CookieRefresh:                time.Duration(0),
+		SetXAuthRequest:              false,
+		SkipAuthPreflight:            false,
+		PersonalAccessTokenBasicAuth: false,
+		PassBasicAuth:                true,
+		PassUserHeaders:              true,
+		PassAccessToken:              false,
+		PassHostHeader:               true,
+		SetAuthorization:             false,
+		PassAuthorization:            false,
+		ApprovalPrompt:               "force",
+		RequestLogging:               true,
+		SkipOIDCDiscovery:            false,
+		RequestLoggingFormat:         defaultRequestLoggingFormat,
 	}
 }
 

@@ -12,12 +12,13 @@ import (
 
 // SessionState is used to store information about the currently authenticated user session
 type SessionState struct {
-	AccessToken  string    `json:",omitempty"`
-	IDToken      string    `json:",omitempty"`
-	ExpiresOn    time.Time `json:"-"`
-	RefreshToken string    `json:",omitempty"`
-	Email        string    `json:",omitempty"`
-	User         string    `json:",omitempty"`
+	PersonalAccessToken string    `json:",omitempty"`
+	AccessToken         string    `json:",omitempty"`
+	IDToken             string    `json:",omitempty"`
+	ExpiresOn           time.Time `json:"-"`
+	RefreshToken        string    `json:",omitempty"`
+	Email               string    `json:",omitempty"`
+	User                string    `json:",omitempty"`
 }
 
 // SessionStateJSON is used to encode SessionState into JSON without exposing time.Time zero value
@@ -64,6 +65,12 @@ func (s *SessionState) EncodeSessionState(c *cookie.Cipher) (string, error) {
 		var err error
 		if ss.AccessToken != "" {
 			ss.AccessToken, err = c.Encrypt(ss.AccessToken)
+			if err != nil {
+				return "", err
+			}
+		}
+		if ss.PersonalAccessToken != "" {
+			ss.PersonalAccessToken, err = c.Encrypt(ss.PersonalAccessToken)
 			if err != nil {
 				return "", err
 			}
@@ -174,6 +181,12 @@ func DecodeSessionState(v string, c *cookie.Cipher) (*SessionState, error) {
 	} else {
 		if ss.AccessToken != "" {
 			ss.AccessToken, err = c.Decrypt(ss.AccessToken)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if ss.PersonalAccessToken != "" {
+			ss.PersonalAccessToken, err = c.Decrypt(ss.PersonalAccessToken)
 			if err != nil {
 				return nil, err
 			}
