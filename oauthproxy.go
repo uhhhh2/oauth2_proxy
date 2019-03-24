@@ -62,13 +62,13 @@ type OAuthProxy struct {
 	CookieRefresh  time.Duration
 	Validator      func(string) bool
 
-	RobotsPath          string
-	PingPath            string
-	SignInPath          string
-	SignOutPath         string
-	OAuthStartPath      string
-	OAuthCallbackPath   string
-	AuthOnlyPath        string
+	RobotsPath        string
+	PingPath          string
+	SignInPath        string
+	SignOutPath       string
+	OAuthStartPath    string
+	OAuthCallbackPath string
+	AuthOnlyPath      string
 
 	redirectURL                  *url.URL // the url to receive requests at
 	whitelistDomains             []string
@@ -938,7 +938,7 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 			req.Header["X-Forwarded-Email"] = []string{session.Email}
 		}
 	}
-	
+
 	if p.SetXAuthRequest {
 		rw.Header().Set("X-Auth-Request-User", session.User)
 		if session.Email != "" {
@@ -948,17 +948,17 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 		if p.PassAccessToken && session.AccessToken != "" {
 			rw.Header().Set("X-Auth-Request-Access-Token", session.AccessToken)
 		} else if p.PassAccessToken && session.PersonalAccessToken != "" {
-		  rw.Header().Set("X-Auth-Request-Access-Token", session.PersonalAccessToken)
+			rw.Header().Set("X-Auth-Request-Access-Token", session.PersonalAccessToken)
 		}
 	}
 	if p.PassAccessToken {
-	  // Should the PersonalAccessToken be sent under a different header?
-	  if session.AccessToken != "" {
-		  req.Header["X-Forwarded-Access-Token"] = []string{session.AccessToken}
-	  } else if session.PersonalAccessToken != "" {
-	    req.Header["X-Forwarded-Access-Token"] = []string{session.PersonalAccessToken}
-	  }
-	}  
+		// Should the PersonalAccessToken be sent under a different header?
+		if session.AccessToken != "" {
+			req.Header["X-Forwarded-Access-Token"] = []string{session.AccessToken}
+		} else if session.PersonalAccessToken != "" {
+			req.Header["X-Forwarded-Access-Token"] = []string{session.PersonalAccessToken}
+		}
+	}
 	if p.PassAuthorization && session.IDToken != "" {
 		req.Header["Authorization"] = []string{fmt.Sprintf("Bearer %s", session.IDToken)}
 	}
