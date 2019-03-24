@@ -75,8 +75,8 @@ func (p *GitLabProvider) ValidateSessionState(s *SessionState) bool {
 
 // GetEmailAddress returns the Account email address
 func (p *GitLabProvider) GetEmailAddress(s *SessionState) (string, error) {
-    accessTokenParam, err := p.makeAccessTokenParameter(s)
-    if err != nil {
+	accessTokenParam, err := p.makeAccessTokenParameter(s)
+	if err != nil {
 		log.Printf("failed building request %s", err)
 		return "", err
 	}
