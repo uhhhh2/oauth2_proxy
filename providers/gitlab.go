@@ -45,6 +45,7 @@ func NewGitLabProvider(p *ProviderData) *GitLabProvider {
 	return &GitLabProvider{ProviderData: p}
 }
 
+// SupportsPersonalAccessTokens returns that this provider supports personal access tokens.
 func (p *GitLabProvider) SupportsPersonalAccessTokens() bool {
 	return true
 }
@@ -59,6 +60,7 @@ func (p *GitLabProvider) makeAccessTokenParameter(s *SessionState) (string, erro
 	}
 }
 
+// ValidateSessionState checks that an AccessToken or PersonalAccessToken is valid.
 func (p *GitLabProvider) ValidateSessionState(s *SessionState) bool {
 	if s.AccessToken != "" {
 		return validateToken(p, s.AccessToken, nil)

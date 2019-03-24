@@ -126,6 +126,7 @@ func (p *GitHubProvider) hasOrg(accessToken string) (bool, error) {
 	return false, nil
 }
 
+// ValidateSessionState checks that an AccessToken or PersonalAccessToken is valid.
 func (p *GitHubProvider) ValidateSessionState(s *SessionState) bool {
 	if s.AccessToken != "" {
 		return validateToken(p, s.AccessToken, nil)
@@ -271,6 +272,7 @@ func (p *GitHubProvider) GetEmailAddress(s *SessionState) (string, error) {
 	return "", nil
 }
 
+// SupportsPersonalAccessTokens returns that this provider supports personal access tokens.
 func (p *GitHubProvider) SupportsPersonalAccessTokens() bool {
 	return true
 }

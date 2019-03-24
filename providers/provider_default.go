@@ -12,8 +12,7 @@ import (
 	"github.com/pusher/oauth2_proxy/cookie"
 )
 
-// Only override if the rest of the Provider methods that need tokens
-// can work with BOTH PersonalAccessToken AND AccessToken
+// SupportsPersonalAccessTokens returns whether the provider supports personal access tokens
 func (p *ProviderData) SupportsPersonalAccessTokens() bool {
 	return false
 }
